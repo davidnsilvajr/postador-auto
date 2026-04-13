@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 250 25% 8%;
+    --foreground: 250 10% 95%;
+    --primary: 263 80% 58%;
+    --primary-foreground: 0 0% 100%;
+    --card: 260 15% 15%;
+    --card-foreground: 250 10% 95%;
+    --border: 260 10% 25%;
+    --muted: 260 10% 20%;
+    --muted-foreground: 250 5% 65%;
+    --secondary: 240 10% 20%;
+    --secondary-foreground: 250 10% 95%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
