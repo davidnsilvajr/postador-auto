@@ -88,4 +88,4 @@ export const api = {
   },
 };
 
-export type { T };
+export default api;
