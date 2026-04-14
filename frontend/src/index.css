@@ -19,24 +19,5 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
-  }
-}
-
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted)) transparent;
-  }
-
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+* { @apply border-border; }
+body { @apply bg-background text-foreground; font-family: 'Inter', system-ui, sans-serif; margin: 0; }

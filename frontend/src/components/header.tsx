@@ -1,58 +1,51 @@
-"use client";
+import { useLocation } from 'react-router-dom'
+import { Search, Bell, User } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-import { usePathname } from "next/navigation";
-import { Bell, Search, Menu } from "lucide-react";
+const routeTitles: Record<string, string> = {
+  '/': 'Dashboard',
+  '/posts': 'Posts',
+  '/calendar': 'Calendário',
+  '/generate': 'Gerar com IA',
+  '/integrations': 'Integrações',
+  '/analytics': 'Analytics',
+  '/settings': 'Configurações',
+}
 
-const routeLabels: Record<string, string> = {
-  "/": "Dashboard",
-  "/posts": "Posts",
-  "/calendar": "Calendario",
-  "/generate": "Gerar com IA",
-  "/integrations": "Integracoes",
-  "/analytics": "Analytics",
-  "/settings": "Configuracoes",
-};
-
-export default function Header() {
-  const pathname = usePathname();
-  const pageTitle = routeLabels[pathname] || "Dashboard";
+export function Header() {
+  const location = useLocation()
+  const title = routeTitles[location.pathname] || 'Postador Auto'
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-[hsl(var(--background))]/80 px-6 backdrop-blur-md">
-      {/* Left: page title + mobile menu */}
-      <div className="flex items-center gap-4">
-        <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary lg:hidden">
-          <Menu className="h-5 w-5" />
-        </button>
-        <h2 className="text-xl font-semibold text-foreground">{pageTitle}</h2>
-      </div>
-
-      {/* Right: search, notifications, avatar */}
-      <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="h-9 w-64 rounded-lg border bg-secondary px-9 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-          />
+    <header className="sticky top-0 z-30 border-b border-border bg-card/50 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-8">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold">{title}</h2>
         </div>
 
-        {/* Notifications */}
-        <button className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
-        </button>
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              className="h-9 w-64 rounded-lg border border-border bg-secondary/50 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
 
-        {/* Avatar */}
-        <button className="flex items-center gap-2 rounded-lg border bg-secondary p-1.5 pl-2 transition-colors hover:border-primary/50">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-600 to-violet-500 text-xs font-semibold text-white">
+          {/* Notifications */}
+          <button className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
+          </button>
+
+          {/* User avatar */}
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-xs font-bold text-white">
             DJ
           </div>
-          <span className="hidden text-sm font-medium text-foreground md:inline-block">David Jr</span>
-        </button>
+        </div>
       </div>
     </header>
-  );
+  )
 }
