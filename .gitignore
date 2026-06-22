@@ -15,6 +15,7 @@ venv/
 .next/
 dist/
 build/
+*.tsbuildinfo
 
 # IDE
 .vscode/
@@ -31,3 +32,5 @@ Thumbs.db
 
 # Claude
 .claude/
+
+.vercel

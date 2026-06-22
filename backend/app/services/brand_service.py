@@ -2,14 +2,26 @@ from typing import Optional
 from app.database import supabase
 
 
-def create_brand(user_id: str, name: str, industry: str = "", description: str = "", tone_of_voice: str = "professional") -> dict:
-    """Create a new brand"""
+def create_brand(
+    user_id: str,
+    name: str,
+    industry: str = "",
+    description: str = "",
+    tone_of_voice: str = "professional",
+    website: str = "",
+    target_audience: str = "",
+    company_info: str = "",
+) -> dict:
+    """Create a new brand / client persona"""
     result = supabase.table("brands").insert({
         "user_id": user_id,
         "name": name,
         "industry": industry,
         "description": description,
         "tone_of_voice": tone_of_voice,
+        "website": website,
+        "target_audience": target_audience,
+        "company_info": company_info,
     }).execute()
 
     return result.data[0] if result.data else {}

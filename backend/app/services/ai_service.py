@@ -72,10 +72,13 @@ def generate_post_content(
 
     system_prompt = f"""Voce e um social media marketing profissional especializado em criar conteudo de alta performance para redes sociais brasileiras.
 
-## Sobre a marca:
+## Sobre a marca / persona do cliente:
 - Nome: {brand.get('name', 'N/A')}
-- Industria: {brand.get('industry', 'N/A')}
-- Descricao: {brand.get('description', 'N/A')}
+- Industria / segmento: {brand.get('industry', 'N/A')}
+- O que faz (descricao): {brand.get('description', 'N/A')}
+- Publico-alvo: {brand.get('target_audience') or 'N/A'}
+- Dados da empresa: {brand.get('company_info') or 'N/A'}
+- Site: {brand.get('website') or 'N/A'}
 - Tom de voz: {tone or brand.get('tone_of_voice', 'N/A')}
 - Tagline: {guideline.get('tagline', 'N/A')}
 - Palavras-chave: {', '.join(guideline.get('keywords', []))}
@@ -105,7 +108,12 @@ Responda EXCLUSIVAMENTE em JSON valido:
 
 
 def generate_image(image_prompt: str, brand_id: Optional[str] = None) -> str:
-    """Generate image via OpenRouter-compatible image model"""
+    """Generate an image and return a STABLE public URL.
+
+    The provider (DALL-E etc.) returns a temporary URL or base64. The Instagram
+    Graph API needs to fetch the image from a durable public URL, so we re-host
+    the bytes in the Supabase `brand-assets` bucket and return that URL.
+    """
     settings = get_settings()
 
     if brand_id:
@@ -126,11 +134,45 @@ def generate_image(image_prompt: str, brand_id: Optional[str] = None) -> str:
             "n": 1,
             "size": "1024x1024",
         },
-        timeout=60.0,
+        timeout=120.0,
     )
 
     data = resp.json()
-    return data["data"][0]["url"]  # may vary by provider
+    if "error" in data:
+        raise ValueError(f"Image generation error: {data['error']}")
+
+    item = data["data"][0]
+    provider_url = item.get("url")
+
+    # Get the raw image bytes (either base64 inline or by downloading the temp URL)
+    image_bytes: Optional[bytes] = None
+    if item.get("b64_json"):
+        import base64
+        image_bytes = base64.b64decode(item["b64_json"])
+    elif provider_url:
+        try:
+            dl = httpx.get(provider_url, timeout=120.0)
+            if dl.status_code == 200:
+                image_bytes = dl.content
+        except Exception:
+            image_bytes = None
+
+    # Re-host in Supabase Storage for a stable, public URL (best-effort).
+    if image_bytes:
+        try:
+            import uuid
+            folder = brand_id or "misc"
+            file_path = f"generated/{folder}/{uuid.uuid4().hex}.png"
+            supabase.storage.from_("brand-assets").upload(
+                file_path, image_bytes, {"content-type": "image/png"}
+            )
+            return supabase.storage.from_("brand-assets").get_public_url(file_path)
+        except Exception:
+            pass  # fall back to provider URL below
+
+    if not provider_url:
+        raise ValueError("Image generation returned no usable image")
+    return provider_url
 
 
 def suggest_content_pillars(brand_id: str) -> list[dict]:

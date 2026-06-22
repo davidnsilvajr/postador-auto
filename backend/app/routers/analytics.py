@@ -15,7 +15,7 @@ def analytics_summary(
     """Get overall analytics summary"""
     filters = []
     if brand_id:
-        filters.append("brand_id", f"eq.{brand_id}")
+        filters.append(f"brand_id=eq.{brand_id}")
 
     date_filter = {}
     if start_date:
@@ -57,10 +57,10 @@ def analytics_summary(
 
     return {
         "period": {
-            "start": start_date || (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"),
-            "end": end_date || datetime.now().strftime("%Y-%m-%d"),
+            "start": start_date or (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"),
+            "end": end_date or datetime.now().strftime("%Y-%m-%d"),
         },
-        "total_posts": published_result.count || 0,
+        "total_posts": published_result.count or 0,
         "total_impressions": total_impressions,
         "total_reach": total_reach,
         "total_likes": total_likes,
@@ -100,7 +100,7 @@ def get_trending_topics(category: Optional[str] = Query(None)):
         max_tokens=1024,
         temperature=0.5,
         system=system_prompt,
-        messages=[{"role": "user", "content": f"Quais são os trending topics para {category || 'geral'} nas redes sociais agora?"}],
+        messages=[{"role": "user", "content": f"Quais são os trending topics para {category or 'geral'} nas redes sociais agora?"}],
     )
 
     import json

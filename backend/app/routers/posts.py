@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
+from datetime import datetime, timezone
 
 from app.schemas import AIContentRequest, AIGeneratedContent, ApprovalRequest
 from app.services import ai_service
@@ -72,7 +73,14 @@ def generate_post_content(request: AIContentRequest):
     if request.generate_image and result.get("image_prompt"):
         image_url = ai_service.generate_image(result["image_prompt"], request.brand_id)
 
-    return {**result, "image_url": image_url}
+    # Derive a primary caption for convenience (frontend single-field use)
+    captions = result.get("captions", {}) or {}
+    primary_caption = (
+        captions.get("instagram")
+        or next(iter(captions.values()), None)
+    )
+
+    return {**result, "caption": primary_caption, "image_url": image_url}
 
 
 @router.post("/{post_id}/approve")
@@ -99,7 +107,7 @@ def approve_bulk_posts(post_ids: list[str]):
     for pid in post_ids:
         result = post_service.update_post(pid, {"status": "approved"})
         updated.append(result)
-    return approved
+    return {"approved": len(updated), "results": updated}
 
 
 @router.post("/schedule-bulk")
@@ -152,7 +160,7 @@ def publish_now(post_id: str, platforms: list[str]):
         if "error" not in publish_result:
             post_service.update_post(post_id, {
                 "status": "published",
-                "published_at": __import__("datetime").datetime.now(__import__("datetime", "timezone").timezone.utc).isoformat(),
+                "published_at": datetime.now(timezone.utc).isoformat(),
             })
 
     return results

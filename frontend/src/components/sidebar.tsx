@@ -8,6 +8,7 @@ import {
   Plug,
   BarChart3,
   Settings,
+  Users,
   LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { label: 'Posts', path: '/posts', icon: FileText },
   { label: 'Calendário', path: '/calendar', icon: Calendar },
+  { label: 'Clientes', path: '/clients', icon: Users },
   { label: 'Gerar com IA', path: '/generate', icon: Wand2 },
   { label: 'Integrações', path: '/integrations', icon: Plug },
   { label: 'Analytics', path: '/analytics', icon: BarChart3 },

@@ -25,6 +25,9 @@ def create_brand(brand_data: dict):
         industry=brand_data.get("industry", ""),
         description=brand_data.get("description", ""),
         tone_of_voice=brand_data.get("tone_of_voice", "professional"),
+        website=brand_data.get("website", ""),
+        target_audience=brand_data.get("target_audience", ""),
+        company_info=brand_data.get("company_info", ""),
     )
 
 

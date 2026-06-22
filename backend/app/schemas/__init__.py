@@ -17,12 +17,14 @@ class AIContentRequest(BaseModel):
 
 class AIGeneratedContent(BaseModel):
     """Response from AI content generation"""
-    caption: str
-    hashtags: list[str]
+    captions: dict[str, str] = {}  # caption per platform: {"instagram": "...", ...}
+    caption: Optional[str] = None  # convenience: primary caption (instagram by default)
+    hashtags: list[str] = []
     image_prompt: Optional[str] = None
     image_url: Optional[str] = None
     variations: list[str] = []  # alternative caption versions
     best_posting_times: list[str] = []
+    content_pillars: list[str] = []
 
 
 class ApprovalRequest(BaseModel):

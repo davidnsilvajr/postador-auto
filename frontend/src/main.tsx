@@ -6,6 +6,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { PostsPage } from '@/pages/PostsPage'
 import { CalendarPage } from '@/pages/CalendarPage'
 import { GeneratePage } from '@/pages/GeneratePage'
+import { ClientsPage } from '@/pages/ClientsPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -20,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="posts" element={<PostsPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="generate" element={<GeneratePage />} />
+          <Route path="clients" element={<ClientsPage />} />
           <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
