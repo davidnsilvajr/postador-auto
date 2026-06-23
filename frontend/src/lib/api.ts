@@ -34,12 +34,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   })
 
+  const contentType = res.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    throw new ApiError(
+      'Backend indisponivel — a resposta nao e JSON. Verifique se o backend esta rodando.',
+      res.status || 502
+    )
+  }
+
   const text = await res.text()
   let data: any = null
   try {
     data = text ? JSON.parse(text) : null
   } catch {
-    data = text
+    throw new ApiError('Resposta invalida do servidor', 502)
   }
 
   if (!res.ok) {
