@@ -1,20 +1,26 @@
 import { useLocation } from 'react-router-dom'
-import { Search, Bell, User } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Search, Bell } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 const routeTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/posts': 'Posts',
-  '/calendar': 'Calendário',
+  '/calendar': 'Calendario',
   '/generate': 'Gerar com IA',
-  '/integrations': 'Integrações',
+  '/clients': 'Clientes',
+  '/integrations': 'Integracoes',
   '/analytics': 'Analytics',
-  '/settings': 'Configurações',
+  '/settings': 'Configuracoes',
 }
 
 export function Header() {
   const location = useLocation()
+  const { user } = useAuth()
   const title = routeTitles[location.pathname] || 'Postador Auto'
+
+  const initials = user?.email
+    ? user.email.substring(0, 2).toUpperCase()
+    : '??'
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/50 backdrop-blur-xl">
@@ -42,7 +48,7 @@ export function Header() {
 
           {/* User avatar */}
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-xs font-bold text-white">
-            DJ
+            {initials}
           </div>
         </div>
       </div>

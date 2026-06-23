@@ -4,9 +4,16 @@
 
 const BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? ''
 
-// Enquanto nao ha login completo, usamos um user_id de dev (uuid de um
-// usuario existente em `profiles`). Definido em frontend/.env (VITE_DEV_USER_ID).
-export const DEV_USER_ID = import.meta.env.VITE_DEV_USER_ID ?? ''
+// userId corrente — definido pelo AuthProvider via setCurrentUserId().
+let _currentUserId = ''
+
+export function setCurrentUserId(uid: string) {
+  _currentUserId = uid
+}
+
+export function getCurrentUserId(): string {
+  return _currentUserId
+}
 
 class ApiError extends Error {
   status: number
@@ -87,6 +94,7 @@ export interface GeneratedContent {
   hashtags: string[]
   image_prompt?: string | null
   image_url?: string | null
+  image_error?: string | null
   variations: string[]
   best_posting_times: string[]
   content_pillars: string[]
@@ -115,11 +123,11 @@ export interface Post {
 
 export const api = {
   // Personas (tabela `brands`)
-  listPersonas: (userId = DEV_USER_ID) =>
+  listPersonas: (userId = _currentUserId) =>
     http.get<Persona[]>(`/api/v1/brands/?user_id=${encodeURIComponent(userId)}`),
   getPersona: (id: string) => http.get<Persona>(`/api/v1/brands/${id}`),
   createPersona: (data: Partial<Persona> & { name: string }) =>
-    http.post<Persona>('/api/v1/brands/', { user_id: DEV_USER_ID, ...data }),
+    http.post<Persona>('/api/v1/brands/', { user_id: _currentUserId, ...data }),
   updatePersona: (id: string, updates: Partial<Persona>) =>
     http.put<Persona>(`/api/v1/brands/${id}`, updates),
   deletePersona: (id: string) => http.del<{ status: string }>(`/api/v1/brands/${id}`),
@@ -147,9 +155,9 @@ export const api = {
 
   // Posts
   createPost: (data: Record<string, unknown>) =>
-    http.post<Post>('/api/v1/posts/', { user_id: DEV_USER_ID, ...data }),
+    http.post<Post>('/api/v1/posts/', { user_id: _currentUserId, ...data }),
   listPosts: (params: { brand_id?: string; status?: string } = {}) => {
-    const q = new URLSearchParams({ user_id: DEV_USER_ID })
+    const q = new URLSearchParams({ user_id: _currentUserId })
     if (params.brand_id) q.set('brand_id', params.brand_id)
     if (params.status) q.set('status', params.status)
     return http.get<Post[]>(`/api/v1/posts/?${q.toString()}`)
@@ -160,14 +168,14 @@ export const api = {
     http.post(`/api/v1/posts/${postId}/schedule`, {
       platform,
       scheduled_at: scheduledAt,
-      user_id: DEV_USER_ID,
+      user_id: _currentUserId,
     }),
 
   // Contas sociais
-  listAccounts: (userId = DEV_USER_ID) =>
+  listAccounts: (userId = _currentUserId) =>
     http.get<SocialAccount[]>(`/api/v1/social-accounts/?user_id=${encodeURIComponent(userId)}`),
   connectAccount: (data: { platform: string; access_token: string; page_id?: string }) =>
-    http.post<SocialAccount>('/api/v1/social-accounts/', { user_id: DEV_USER_ID, ...data }),
+    http.post<SocialAccount>('/api/v1/social-accounts/', { user_id: _currentUserId, ...data }),
   disconnectAccount: (id: string) =>
     http.del<{ status: string }>(`/api/v1/social-accounts/${id}`),
 }

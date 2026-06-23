@@ -11,7 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { api, DEV_USER_ID, type Persona, type Guideline } from '@/lib/api'
+import { api, type Persona, type Guideline } from '@/lib/api'
 
 const toneOptions = [
   { label: 'Profissional', value: 'profissional' },
@@ -196,21 +196,6 @@ export function ClientsPage() {
           Novo Cliente
         </button>
       </div>
-
-      {!DEV_USER_ID && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-medium">VITE_DEV_USER_ID não configurado</p>
-            <p className="text-amber-300/80">
-              Defina <code className="font-mono">VITE_DEV_USER_ID</code> em{' '}
-              <code className="font-mono">frontend/.env</code> com o uuid de um usuário
-              existente em <code className="font-mono">profiles</code> (Supabase &gt;
-              Authentication &gt; Users) e reinicie o <code className="font-mono">npm run dev</code>.
-            </p>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
