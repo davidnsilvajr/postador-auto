@@ -68,10 +68,14 @@ def generate_post_content(request: AIContentRequest):
         campaign=request.campaign,
     )
 
-    # Generate image if requested
+    # Generate image if requested (errors don't abort the whole request)
     image_url = None
+    image_error = None
     if request.generate_image and result.get("image_prompt"):
-        image_url = ai_service.generate_image(result["image_prompt"], request.brand_id)
+        try:
+            image_url = ai_service.generate_image(result["image_prompt"], request.brand_id)
+        except Exception as exc:
+            image_error = str(exc)
 
     # Derive a primary caption for convenience (frontend single-field use)
     captions = result.get("captions", {}) or {}
@@ -80,7 +84,7 @@ def generate_post_content(request: AIContentRequest):
         or next(iter(captions.values()), None)
     )
 
-    return {**result, "caption": primary_caption, "image_url": image_url}
+    return {**result, "caption": primary_caption, "image_url": image_url, "image_error": image_error}
 
 
 @router.post("/{post_id}/approve")

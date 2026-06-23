@@ -107,12 +107,111 @@ Responda EXCLUSIVAMENTE em JSON valido:
     return _extract_json(raw)
 
 
+def _upload_to_supabase(image_bytes: bytes, brand_id: Optional[str]) -> Optional[str]:
+    """Upload image bytes to Supabase Storage and return the public URL."""
+    try:
+        import uuid
+        folder = brand_id or "misc"
+        file_path = f"generated/{folder}/{uuid.uuid4().hex}.png"
+        supabase.storage.from_("brand-assets").upload(
+            file_path, image_bytes, {"content-type": "image/png"}
+        )
+        return supabase.storage.from_("brand-assets").get_public_url(file_path)
+    except Exception:
+        return None
+
+
+def _generate_image_gemini(prompt: str, settings) -> tuple[Optional[bytes], Optional[str]]:
+    """Generate image using Gemini via OpenRouter chat completions.
+
+    Gemini image models use the chat completions endpoint with
+    modalities=["text", "image"]. The response contains images as
+    base64 data URLs in message.images[].image_url.url.
+    """
+    import base64 as b64mod
+
+    resp = httpx.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Postador Auto",
+        },
+        json={
+            "model": settings.OPENROUTER_IMAGE_MODEL,
+            "modalities": ["text", "image"],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
+        },
+        timeout=120.0,
+    )
+    data = resp.json()
+
+    if "error" in data:
+        raise ValueError(f"Gemini image error: {data['error']}")
+
+    msg = data["choices"][0]["message"]
+
+    # Images come in message.images[] as data URLs
+    images = msg.get("images") or []
+    for img in images:
+        url = img.get("image_url", {}).get("url", "")
+        if url.startswith("data:image/"):
+            # Extract base64 from data URL: "data:image/png;base64,AAAA..."
+            b64_data = url.split(",", 1)[1]
+            return b64mod.b64decode(b64_data), None
+
+    # Some responses embed images inline in content parts
+    content = msg.get("content")
+    if isinstance(content, list):
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                url = part.get("image_url", {}).get("url", "")
+                if url.startswith("data:image/"):
+                    b64_data = url.split(",", 1)[1]
+                    return b64mod.b64decode(b64_data), None
+                if url.startswith("http"):
+                    dl = httpx.get(url, timeout=120.0)
+                    if dl.status_code == 200:
+                        return dl.content, url
+
+    return None, None
+
+
+def _generate_image_openai(prompt: str, api_key: str) -> tuple[Optional[bytes], Optional[str]]:
+    """Generate image using OpenAI SDK directly (DALL-E 3). Returns (bytes, url)."""
+    from openai import OpenAI
+    import base64 as b64mod
+
+    client = OpenAI(api_key=api_key)
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=prompt,
+        n=1,
+        size="1024x1024",
+        response_format="b64_json",
+    )
+    b64 = response.data[0].b64_json
+    if b64:
+        return b64mod.b64decode(b64), None
+    return None, response.data[0].url
+
+
 def generate_image(image_prompt: str, brand_id: Optional[str] = None) -> str:
     """Generate an image and return a STABLE public URL.
 
-    The provider (DALL-E etc.) returns a temporary URL or base64. The Instagram
-    Graph API needs to fetch the image from a durable public URL, so we re-host
-    the bytes in the Supabase `brand-assets` bucket and return that URL.
+    Primary: Gemini via OpenRouter (chat completions with modalities).
+    Fallback: OpenAI DALL-E 3 (if OPENAI_API_KEY is set).
+
+    The Instagram Graph API needs a durable public URL, so the image bytes
+    are re-hosted in the Supabase `brand-assets` bucket.
     """
     settings = get_settings()
 
@@ -122,57 +221,34 @@ def generate_image(image_prompt: str, brand_id: Optional[str] = None) -> str:
         if guideline.get("primary_color"):
             image_prompt += f"\nUse the primary color #{guideline['primary_color']} in the image."
 
-    resp = httpx.post(
-        "https://openrouter.ai/api/v1/images/generations",
-        headers={
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": settings.OPENROUTER_IMAGE_MODEL,
-            "prompt": image_prompt,
-            "n": 1,
-            "size": "1024x1024",
-        },
-        timeout=120.0,
-    )
-
-    data = resp.json()
-    if "error" in data:
-        raise ValueError(f"Image generation error: {data['error']}")
-
-    item = data["data"][0]
-    provider_url = item.get("url")
-
-    # Get the raw image bytes (either base64 inline or by downloading the temp URL)
     image_bytes: Optional[bytes] = None
-    if item.get("b64_json"):
-        import base64
-        image_bytes = base64.b64decode(item["b64_json"])
-    elif provider_url:
-        try:
-            dl = httpx.get(provider_url, timeout=120.0)
-            if dl.status_code == 200:
-                image_bytes = dl.content
-        except Exception:
-            image_bytes = None
+    fallback_url: Optional[str] = None
+    errors: list[str] = []
 
-    # Re-host in Supabase Storage for a stable, public URL (best-effort).
+    # 1) Primary: Gemini via OpenRouter
+    try:
+        image_bytes, fallback_url = _generate_image_gemini(image_prompt, settings)
+    except Exception as exc:
+        errors.append(f"Gemini: {exc}")
+
+    # 2) Fallback: OpenAI DALL-E 3
+    if not image_bytes and not fallback_url and settings.OPENAI_API_KEY:
+        try:
+            image_bytes, fallback_url = _generate_image_openai(image_prompt, settings.OPENAI_API_KEY)
+        except Exception as exc:
+            errors.append(f"DALL-E: {exc}")
+
+    # Re-host in Supabase Storage for a stable, public URL.
     if image_bytes:
-        try:
-            import uuid
-            folder = brand_id or "misc"
-            file_path = f"generated/{folder}/{uuid.uuid4().hex}.png"
-            supabase.storage.from_("brand-assets").upload(
-                file_path, image_bytes, {"content-type": "image/png"}
-            )
-            return supabase.storage.from_("brand-assets").get_public_url(file_path)
-        except Exception:
-            pass  # fall back to provider URL below
+        stable_url = _upload_to_supabase(image_bytes, brand_id)
+        if stable_url:
+            return stable_url
 
-    if not provider_url:
-        raise ValueError("Image generation returned no usable image")
-    return provider_url
+    if fallback_url:
+        return fallback_url
+
+    error_detail = "; ".join(errors) if errors else "No usable image returned"
+    raise ValueError(f"Image generation failed — {error_detail}")
 
 
 def suggest_content_pillars(brand_id: str) -> list[dict]:

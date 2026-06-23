@@ -27,7 +27,16 @@ class Settings(BaseSettings):
 
     # Modelos via OpenRouter (padrao pode ser mudado no frontend)
     OPENROUTER_TEXT_MODEL: str = "anthropic/claude-sonnet-4"
-    OPENROUTER_IMAGE_MODEL: str = "openai/dall-e-3"
+    OPENROUTER_IMAGE_MODEL: str = "google/gemini-2.5-flash-image"
+
+    # OpenAI direto (opcional - usado para geracao de imagens via DALL-E)
+    # Se definido, a geracao de imagens usa OpenAI diretamente em vez do OpenRouter
+    OPENAI_API_KEY: str = ""
+
+    # URL direta do banco PostgreSQL (Supabase)
+    # Necessaria para rodar migrations via psycopg2
+    # Formato: postgresql://postgres:[senha]@db.[project-ref].supabase.co:5432/postgres
+    DATABASE_URL: str = ""
 
     # Social Media APIs
     INSTAGRAM_ACCESS_TOKEN: str = ""

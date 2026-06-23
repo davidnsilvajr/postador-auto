@@ -22,6 +22,7 @@ class AIGeneratedContent(BaseModel):
     hashtags: list[str] = []
     image_prompt: Optional[str] = None
     image_url: Optional[str] = None
+    image_error: Optional[str] = None  # set if image generation failed (content still returned)
     variations: list[str] = []  # alternative caption versions
     best_posting_times: list[str] = []
     content_pillars: list[str] = []
