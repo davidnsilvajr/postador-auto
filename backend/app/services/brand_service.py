@@ -13,16 +13,27 @@ def create_brand(
     company_info: str = "",
 ) -> dict:
     """Create a new brand / client persona"""
-    result = supabase.table("brands").insert({
+    row = {
         "user_id": user_id,
         "name": name,
         "industry": industry,
         "description": description,
         "tone_of_voice": tone_of_voice,
         "website": website,
-        "target_audience": target_audience,
-        "company_info": company_info,
-    }).execute()
+    }
+
+    # Columns added by migration 0002 — may not exist yet
+    extra_cols = {}
+    if target_audience:
+        extra_cols["target_audience"] = target_audience
+    if company_info:
+        extra_cols["company_info"] = company_info
+
+    try:
+        result = supabase.table("brands").insert({**row, **extra_cols}).execute()
+    except Exception:
+        # Migration 0002 not applied yet — insert without extra columns
+        result = supabase.table("brands").insert(row).execute()
 
     return result.data[0] if result.data else {}
 
@@ -41,7 +52,12 @@ def get_brand(brand_id: str) -> Optional[dict]:
 
 def update_brand(brand_id: str, updates: dict) -> dict:
     """Update brand information"""
-    result = supabase.table("brands").update(updates).eq("id", brand_id).execute()
+    try:
+        result = supabase.table("brands").update(updates).eq("id", brand_id).execute()
+    except Exception:
+        # Migration 0002 not applied — strip extra columns and retry
+        safe = {k: v for k, v in updates.items() if k not in ("target_audience", "company_info")}
+        result = supabase.table("brands").update(safe).eq("id", brand_id).execute()
     return result.data[0] if result.data else {}
 
 
